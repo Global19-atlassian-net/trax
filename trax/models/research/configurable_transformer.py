@@ -112,7 +112,7 @@ def FeedForwardWithOptions(d_model,
   else:
     ff = _FeedForward(d_model, d_ff, dropout, ff_activation, ff_dropout,
                       use_bfloat16, mode)
-  res = [tl.LayerNorm(), ff]
+  res = [ff]
   if ff_sparsity_type != '1inN' or ff_sparsity == 0:
     # SparseFF has Dropout and BatchLeadingAxes built-in.
     res.append(tl.Dropout(rate=dropout, shared_axes=dropout_shared_axes,
@@ -125,9 +125,9 @@ def FeedForwardWithOptions(d_model,
     else:
       sru_n_layers, sru_n_units = ff_use_sru, 32
     sru = [tl.SRU(sru_n_units, mode=mode) for _ in range(sru_n_layers)]
-    block = [tl.LayerNorm(), tl.Dense(sru_n_units)] + sru + [tl.Dense(d_model)]
+    block = [tl.Dense(sru_n_units)] + sru + [tl.Dense(d_model)]
     res = tl.Residual(block, shortcut=res)
-  return [res]
+  return [tl.LayerNorm()] + [res]
 
 
 # TODO(lukaszkaiser): unify attention layers API and remove this branch
